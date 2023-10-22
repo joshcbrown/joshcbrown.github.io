@@ -48,6 +48,7 @@ div#navigation a {
 div#content {
     width: 80%;
 }
+
 @media (min-width: 800px) {
     div#content {
         width: 70%;
