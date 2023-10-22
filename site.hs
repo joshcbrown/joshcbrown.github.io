@@ -36,8 +36,8 @@ main = hakyllWith config $ do
             posts <- recentFirst =<< loadAll "posts/*"
             let archiveCtx =
                     listField "posts" postCtx (return posts)
-                        `mappend` constField "title" "Archives"
-                        `mappend` defaultContext
+                        <> constField "title" "Archives"
+                        <> defaultContext
 
             makeItem ""
                 >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
@@ -47,10 +47,10 @@ main = hakyllWith config $ do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
+            posts <- fmap (take 10) . recentFirst =<< loadAll "posts/*"
             let indexCtx =
                     listField "posts" postCtx (return posts)
-                        `mappend` defaultContext
+                        <> defaultContext
 
             getResourceBody
                 >>= applyAsTemplate indexCtx
@@ -67,4 +67,4 @@ config = defaultConfiguration{destinationDirectory = "docs"}
 postCtx :: Context String
 postCtx =
     dateField "date" "%B %e, %Y"
-        `mappend` defaultContext
+        <> defaultContext
