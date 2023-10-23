@@ -3,6 +3,25 @@
 
 import Data.Monoid (mappend)
 import Hakyll
+import Text.Pandoc
+import Text.Pandoc (Extension (Ext_tex_math_single_backslash))
+import Text.Pandoc.Highlighting
+
+pandocCompiler' :: Compiler (Item String)
+pandocCompiler' =
+    let mathExtensions =
+            [ Ext_tex_math_single_backslash
+            , Ext_tex_math_double_backslash
+            , Ext_latex_macros
+            ]
+        defaultExtensions = writerExtensions defaultHakyllWriterOptions
+        newExtensions = extensionsFromList $ extensionsToList defaultExtensions ++ mathExtensions
+        writerOptions =
+            defaultHakyllWriterOptions
+                { writerExtensions = newExtensions
+                , writerHTMLMathMethod = MathJax ""
+                }
+     in pandocCompilerWith defaultHakyllReaderOptions writerOptions
 
 --------------------------------------------------------------------------------
 main :: IO ()
@@ -18,14 +37,14 @@ main = hakyllWith config $ do
     match (fromList ["about.rst", "contact.markdown"]) $ do
         route $ setExtension "html"
         compile
-            $ pandocCompiler
+            $ pandocCompiler'
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
 
     match "posts/*" $ do
         route $ setExtension "html"
         compile
-            $ pandocCompiler
+            $ pandocCompiler'
             >>= loadAndApplyTemplate "templates/post.html" postCtx
             >>= loadAndApplyTemplate "templates/default.html" postCtx
             >>= relativizeUrls

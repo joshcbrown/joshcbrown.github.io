@@ -2,7 +2,6 @@
  * Styling heavily borrowed from https://github.com/katychuang/hakyll-cssgarden.git
  * and https://github.com/rebeccaskinner/effective-haskell.com.git
  * */
-@import 'layout.css';
 
 @font-face {
     font-family: 'InterRegular';
@@ -120,4 +119,30 @@ div.sourceCode {
     -o-border-radius: 6px;
     /* width fix */
     width: auto;
+}
+/*table stuff*/
+
+table {
+    margin: 21px 0 21px 0;
+    border-collapse: collapse;
+    border: 1px solid black;
+}
+table tr:hover {
+    background: #f1f8f6;
+}
+table tr:hover td {
+    color: #2f4858;
+}
+table th,
+table td {
+    border-bottom: 1px solid #9cafb0;
+    padding: 12px 35px;
+    border-collapse: collapse;
+}
+table th {
+    font-weight: bold;
+    text-align: left;
+}
+table th.last {
+    border-right: none;
 }

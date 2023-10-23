@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'Latin Modern Roman';
+    src: local('Latin Modern Roman 10 Italic'), local('Latin-Modern-Roman-10-Italic'),
+        url('LMRoman10-Italic.woff2') format('woff2'),
+        url('LMRoman10-Italic.woff') format('woff'),
+        url('LMRoman10-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+  }
