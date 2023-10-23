@@ -58,6 +58,7 @@ div#content {
 @media (max-width: 500px) {
     .wrapper {
         flex-direction: column;
+        justify-content: flex-start;
     }
     div#navigation {
         display: flex;
