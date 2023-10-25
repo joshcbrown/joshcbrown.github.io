@@ -1,0 +1,314 @@
+---
+date: 2023-10-25
+---
+\documentclass[pstricks, 11pt,a4paper]{article}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{enumitem}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{tabularx,booktabs}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage{geometry}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+ \geometry{
+ a4paper,
+ total={174mm,245mm},
+ left=19mm,
+ top=26mm,
+ }
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{HTML}{F4F4F4}
+
+%%% Headers and Footers %%%
+
+\cfoot{\phantom{xxx}}
+\rfoot{Page \thepage\ of \pageref{LastPage}}
+\DeclareMathOperator{\arcsinh}{arcsinh}
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\renewcommand\P{\mathbb{P}}
+\newcommand\E{\mathbb{E}}
+\newcommand{\bp}{\boldsymbol{\pi}}
+\newcommand\bb{\boldsymbol{\beta}}
+\newcommand\be{\boldsymbol{\eta}}
+\newcommand\bx{\mathbf{x}}
+\renewcommand{\ss}{\sum_{i=1}^n}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+\setlength\parindent{0pt}
+
+\newcommand{\hmwkTitle}{Assignment 1}
+\newcommand{\hmwkDueDate}{Thursday 12 October}
+\newcommand{\hmwkClass}{STK-MAT3170}
+\newcommand{\hmwkAuthorName}{Josh Brown}
+\newcommand{\hmwkClassInstructor}{Lecturer: David Banos}
+\newcommand{\studentid}{674770}
+\newcommand{\inorm}[2]{\left(\int_E |#1|^{#2}\;d\mu\right)^{\frac{1}{#2}}}
+
+\theoremstyle{theorem}
+\newtheorem*{lemma}{Lemma}
+
+\newtheorem*{theorem}{Theorem}
+
+\newcommand{\bmu}{\boldsymbol{\mu}}
+
+\linespread{1.1}
+\pagestyle{fancy}
+\lhead{\hmwkClass\  \hmwkTitle}
+\rhead{\hmwkAuthorName\ \textbf{\studentid}}
+
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \vspace{0.1in}
+    \large{ {\hmwkClassInstructor}}\\
+    \normalsize\vspace{0.1in}\large{Due\ \hmwkDueDate\ at 2:30pm}\\
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{\bf \studentid}
+
+
+\begin{document}
+
+\begin{titlepage}
+  \maketitle
+  \thispagestyle{empty}
+\end{titlepage}
+
+\begin{enumerate}
+  \item
+        \begin{enumerate}
+          \item
+                A $\sigma$-algebra $\mathcal{E}$ on a set $E$ is a class (set) of subsets of $E$ which satisfies three properties:
+                \begin{enumerate}
+                  \item \(E \in \mathcal{E}\),
+                  \item Closure under countable union: for \(\{E_i\}_{i=1}^{\infty}\) with each \(E_{i} \in \mathcal{E}\), \(\bigcup_{i=1}^{\infty}E_{i} \in \mathcal{E}\)
+                  \item Closure under complement: for each \(F \in \mathcal{E}\), \(F^{c} \in \mathcal{E}\).
+                \end{enumerate}
+                Given an arbitrary set $E$, the minimal $\sigma$-algebra over $E$ is $\{\emptyset, E\}$
+          \item A measurable space is a 2-tuple consisting of a set $E$ and a $\sigma$-algebra over $E$. One example for an arbitrary $E$ is $(E, \{\emptyset, E\})$.
+          \item A measure on a measure space $(E, \mathcal{E})$ is a function $\mu: \mathcal{E} \rightarrow [0, \infty]$ which satisfies two properties:
+                \begin{enumerate}
+                  \item $\mu(\emptyset) = 0$,
+                  \item $\sigma$-additivity: for \(\{E_i\}_{i=1}^{\infty}\) with each \(E_{i} \in \mathcal{E}\), we have \(\mu\left(\bigcup_{i=1}^{\infty}E_{i}\right) = \sum_{i=0}^{\infty}\mu(E_{i})\)
+                \end{enumerate}
+                One example of a measure is the counting measure, the measure which assigns to each set $F$ the number of elements in $F$.
+
+                A measure space is the 3-tuple $(E, \mathcal{E}, \mu)$, where $E$ is a set, $\mathcal{E}$ a $\sigma$-algebra on $E$, and $\mu$ a measure on $(E, \mathcal{E})$. An example is the minimal $\sigma$-algebra over $E$, paired with the counting measure.
+          \item Given a measure space $(E, \mathcal{E}, \mu)$, define the negligible sets $\mathcal{N}_{\mu}$ to be those sets $F\subseteq N \in \mathcal{E}$ for which $\mu(N) = 0$. Note that this definition does not require $F \in \mathcal{E}$. Thus, we say $\mu$ is a complete measure if $\mathcal{N}_{\mu} \subseteq \mathcal{E}$.
+
+                One example of a complete measure is the counting measure (the only negligible set is the empty set).
+
+                Take $E=\mathbb{R}$, $\mathcal{E}=\mathcal{B}(\mathbb{R})\setminus\{x\}$, and $\mu=\lambda$, where $\mathcal{B}(\mathbb{R})$ are the Borel sets on $\mathbb{R}$ and $\lambda$ the Lebesgue measure, and $x\in\mathbb{R}$. Then $\lambda$ is an incomplete measure ($\lambda(\{x, y\})=0$ for $y \in \mathbb{R}, y\neq x$).
+          \item Given a measure space $(E, \mathcal{E}, \mu)$, a property $P$ is said to hold almost everywhere in E if there exists a set $N$ such that $\forall x \in E\setminus N \;\; P(x)$ and $\mu(N) = 0$.
+
+                Given $(\mathbb{R}, \mathcal{B}(\mathbb{R}), \lambda)$, where $\mathcal{B}(\mathbb{R})$ are the Borel sets on $\mathbb{R}$ and $\lambda$ the Lebesgue measure, one property which holds almost everywhere is the irrationality of a given number (take $N=\mathbb{Q}$).
+          \item Let $f:(E, \mathcal{E})\rightarrow(F, \mathcal{F})$ be a mapping between measurable spaces. $f$ is often defined point-wise on $E$ but formally maps elements of $\mathcal{E}$ to elements of $\mathcal{F}$. Now define $f^{-1}$ to map elements of $\mathcal{F}$ to their pre-image through $f$. We say that $f$ is a measurable mapping if $f^{-1}(G) \in \mathcal{E}$ for all $G \in \mathcal{F}$.
+
+                Let $f:(\mathbb{R}, \mathcal{B}(\mathbb{R}))\rightarrow(\mathbb{R}, \mathcal{B}(\mathbb{R}))$ such that $f(x)=x^{n}$. Since $f$ is bijective, $f$ is a measurable mapping.
+          \item Let $(E, \mathcal{E}, \mu)$ be a measure space, $(F, \mathcal{F})$ a measurable space, and $f$ a measurable function from $(E, \mathcal{E})$ to $(F, \mathcal{F})$. The push forward measure is defined as
+                \(
+                \mu_{f} = \mu \circ f^{-1}
+                \).
+
+                Let $f: \mathbb{R}\rightarrow\mathbb{R} \;\;\;f(x) = x^{3}$ be a measurable function on $(\mathbb{R}, \mathcal{B}(\mathbb{R}), \lambda)$. Then the push forward measure $\mu_{f}$ is $\mu_{f}(A)=\lambda(\{x^{\frac{1}{3}}\mid x \in A\})$
+          \item A simple function is analogous to a step function over a general measure space.
+                Let $(E, \mathcal{E}, \mu)$ be a measure space and $\{E_{i}\}_{i=1}^{n}$ be a partition over $E$. $f:\mathbb{R}\rightarrow\mathbb{R}$ is simple if it can be expressed as
+                \[
+                f(x) = \sum_{i=1}^{n} a_{i}\mathbb{I}\left(x\in E_{i}\right),
+                \]
+                where $\{a_{i}\}_{i=1}^{n}$ is a finite sequence of positive real numbers.
+
+                The Dirac measure $\delta_{A}$ is a simple function over an arbitrary measure space.
+
+          \item Let $f$ be a simple function over the measure space $(E, \mathcal{E}, \mu)$. The integral of $f$ with respect to $\mu$ is
+
+                \[
+                \int_{E}f\;d\mu = \sum_{i=1}^{n}a_{i}\,\mu(E_{i})
+                \]
+
+                Consider the function $f: \mathbb{R}\rightarrow\mathbb{R}$ defined as $f = \mathbb{I}_{[0, 1]} + 2\mathbb{I}_{[2, \frac{5}{2}]}$ over $(\mathbb{R}, \mathcal{B}(\mathbb{R}), \lambda)$. Then $\int_{\mathbb{R}}f \;d\lambda = 1 + 2 \cdot \frac{1}{2} = 2$.
+          \item Let $f: E \rightarrow \mathbb{R}$ be a nonnegative measurable function over $(E, \mathcal{E}, \mu)$. Let $\{f_{n}\}_{n=1}^{\infty}$ be a sequence of increasing simple functions which approaches $f$ point-wise in the limit (such a sequence can be shown to always exist). Then the integral of $f$ with respect to $\mu$ is defined as
+                \[
+                \int_{E}f \;d\mu =\lim_{n\rightarrow\infty} \int_{E}f_{n}\;d\mu
+                \]
+
+                We now extend this definition to include any arbitrary measurable function $g$. Let $g^{-}$ and $g^{+}$ represent the negative and positive parts of $g$, respectively. Then
+
+                \[
+\int_{E}g\;d\mu = \int_{E}g^{+}\;d\mu - \int_{E}g^{-}\;d\mu
+                \]
+
+                Let $f: [0, 1]\rightarrow\mathbb{R}$ be the identity function over $([0, 1], \mathcal{B}([0, 1]), \lambda)$. Then $\int_{[0, 1]} f\; d\lambda = \frac{1}{2}$.
+
+          \item Let $\mu_{f}$ be a push forward measure, as defined above, and $g$ a measurable function on $(F, \mathcal{F}, \mu_{f})$. Then the integral of $g$ with respect to the push forward measure is just $\int_{F}g\;d\mu_{f}$. It happens that this integral exists iff the integral $\int_E g \circ f\;d\mu$ exists, and that these integrals are equal.
+
+          \item % TODO add description of probability
+                A probability space is a measure space $(\Omega, \mathcal{A}, \mathbb{P})$ with the added restriction that $\mathbb{P}(\Omega) = 1$.
+
+                  A random variable $X:\Omega\rightarrow\mathbb{R}$ is a measurable function on a probability space $(\Omega, \mathcal{A}, \mathbb{P})$. Stated another way,
+                \[
+                \{\omega\in\Omega\mid X(\omega)\leq x\}\in\mathcal{A}
+                \]
+
+                The measure space $((0, 1], \mathcal{B}((0, 1]), \lambda)$ is a probability space. Let $\{d_{i}\}_{i=1}^{\infty}$ denote the binary decimal expansion of a given number $\omega$. Now set $X_{n}:\Omega\rightarrow\mathbb{R}$ such that
+                \[X_{n}(\omega)=\frac{1}{n}\sum_{i=1}^{n}d_{i}\]
+                Then $X$ is a random variable in the above probability space.
+          \item Let $X$ be an $n$-dimensional r.v. with density $f_{x}$, and let $g:\mathbb{R}\rightarrow\mathbb{R}$ such that
+                \begin{enumerate}
+                  \item $g$ is injective;
+                  \item All partial derivatives of $g$ exist and are continuous a.e.;
+                  \item $\det Dg^{-1}(y)\neq0$ for a.a $y$.
+                \end{enumerate}
+                Then $Y=g(X)$ is a random variable, and
+                \[
+                f_{Y}(y)=f_{X}(g^{-1}(y))|\det Dg^{-1}(y)|
+                \]
+                % TODO add example
+
+          \item Given a r.v. $X$ on a probability space $\Omega, \mathcal{A}, \mathbb{P}$, we define the expectation of $X$ to be
+                \[
+                \mathbb{E}[X]=\int_{\Omega}X\;d\mathbb{P}
+                \]
+
+                Given a set $A\in\mathcal{A}$, we have by definition that $\mathbb{E}[\mathbb{I}_{A}]=\mathbb{P}[A]$.
+
+          \item
+                Let $X$ be a r.v. as above, with distribution $F_{X}$, and $g$ a function meeting the criteria in m). Then
+                \[
+                \mathbb{E}[g(X)]=\int_{\mathbb{R}}g(x)\;dF_{X}
+                \]
+                In particular, if the density $f_{X}$ is defined, this tells us that \[\mathbb{E}[g(X)]=\int_{\mathbb{R}}g(x)f_{X}(x)\;dx\]
+
+                Suppose $X\sim U(0,1)$. Then
+                \begin{align*}
+                  \mathbb{E}[X^{n}] &= \int_{0}^{1}x^{n}\cdot 1\;dx \\
+                                    &= \frac{1}{n+1}x^{n+1}\Big\rvert_{0}^{1} \\
+                  &= \frac{1}{n+1}
+                \end{align*}
+
+          \item
+                We say that the random variables $\{X_{i}\}_{i\in I}$ on the space $(\Omega, \mathcal{A}, \mathbb{P})$ are independent if the family of $\sigma$-algebras generated by them, that is $\{X_{i}^{-1}(\mathcal{B}(\mathbb{R}))\}_{i\in I}$, are independent.
+
+                Let $X$ be a r.v. on $(\Omega, \mathcal{A}, \mathbb{P})$. Now consider the space $(\Omega^{n}, \mathcal{A}^{*}, \mathbb{P}^{*})$, where $\mathcal{A}^{*}$ is the $\sigma$-algebra generated by the sets $A^{*}=A_{1}\times A_{2}\times ... \times A_{n}$, with $A_{i}\in\mathcal{A}$, and $\mathbb{P}^{*}(A^{*})=\prod_{i=1}^{n}\mathbb{P}(A_{i})$. Now, for $\omega\in\Omega^{n}$ let $X_{i}(\omega)=X(\omega_{i})$. Then the collection of random variables $\{X_{i}\}_{i=1}^{n}$ are independent.
+
+
+        \end{enumerate}
+
+  \item
+        \begin{enumerate}
+          \item We have
+                \begin{align*}
+                \mathbb{P}(\Omega) &= \int_{\mathbb{R}} \frac{1}{\sqrt{2\pi\sigma}}e^{-\frac{z^{2}}{2}}\;dz = 1, \\
+                  \mathbb{P}(\emptyset) &= \int_{\mathbb{\emptyset}} \frac{1}{\sqrt{2\pi\sigma}}e^{-\frac{z^{2}}{2}}\;dz = 0, \\
+                  \end{align*}
+                and $\mathbb{P}(\bigcup_{n=1}^{\infty}A_{i}) = \sum_{n=1}^{\infty}\mathbb{P}(A_{i})$ trivially for disjoint sequences $\{A_{i}\}_{i=0}^{\infty}$ by the additivity of the integral. Thus $\mathbb{P}$ is a probability measure on $(\Omega, \mathcal{A})$.
+
+          \item
+                \begin{align*}
+                  \{\omega \in \Omega \mid \rho\leq x\} &= \{\omega\in \mathbb{R}\mid \mu + \sigma\omega\leq x\} \\
+                    &= \{\omega\in \mathbb{R}\mid \omega\leq \frac{1}{\omega}(x-\mu)\} \\
+                  &= \left(-\infty, \frac{1}{\omega}(x-\mu)\right] \in \mathcal{B}(\mathbb{R})
+                \end{align*}
+                Thus $\rho$ is a random variable.
+
+          \item We proceed in the same way as b):
+                \begin{align*}
+                  \{\omega\in\Omega\mid C_{0}e^{\rho(\omega)t}\leq x\} &= \left\{\omega\in\mathbb{R^{+}}\mid\rho(\omega)\leq\frac{1}{t}\log{\frac{x}{C_0}}\right\} \\
+                  &= \left\{\omega\in\mathbb{R}^{+}\mid\omega\leq\frac{1}{\sigma}\left(\frac{1}{t}\log{\frac{x}{C_0}} - \mu\right)\right\} \\
+                  &=\left(0, \frac{1}{\sigma}\left(\frac{1}{t}\log{\frac{x}{C_0}} - \mu\right)\right\} \right]\\ &\in \mathcal{B}(\mathbb{R})=\mathcal{A}
+                \end{align*}
+                So C is a random variable.
+          \item Let $X$ be a random variable on $(\mathbb{R}, \mathcal{B}(\mathbb{R}), \mathbb{P})$ such that $X(\omega)=\omega$. Then $X\sim N(0,1)$. Thus $C=C_{0}e^{(\mu+\sigma X)t}$, and by the law of the unconscious statistician,
+                \begin{align*}
+                  \mathbb{E}[C] &= \int_{-\infty}^{\infty}C_{0}e^{(\mu+\sigma z)t}\frac{1}{\sqrt{2\pi}}e^{-\frac{z^{2}}{2}}\;dz \\
+                  &=C_{0}e^{\mu t}\int_{-\infty}^{\infty}\frac{1}{\sqrt{2\pi}}e^{-\frac{z^{2}}{2} + \sigma tz}\;dz \\
+                    &=C_{0}e^{\mu t+\frac{1}{2}(\sigma t)^{2}}\int_{-\infty}^{\infty}\frac{1}{\sqrt{2\pi}}e^{-\frac{1}{2}(z-\sigma t)^{2}}\;dz \\
+                  &= C_{0}e^{\mu t+\frac{1}{2}(\sigma t)^{2}}
+                \end{align*}
+                For the law of $C$, we have
+
+                \begin{align*}
+                  \mu_{C}((a, b]) &= \int_{\frac{1}{\sigma}(\frac{1}{t}\log\frac{a}{C_{0}}-\mu)}^{\frac{1}{\sigma}(\frac{1}{t}\log\frac{b}{C_{0}}-\mu)}\frac{1}{2\pi}e^{-\frac{z^{2}}{2}}\;dz,
+                \end{align*}
+                which defines the behaviour of $\mu_{C}$ for all intervals in $\mathcal{B}(\mathbb{R})$.
+
+        \end{enumerate}
+
+  \item
+        \begin{enumerate}
+          \item
+                \begin{proof}
+                  $f(x)=x^{p-1}$. Since $\frac{1}{p} + \frac{1}{q} = 1$, we have $q-1=\frac{1}{p-1}$. Thus $f^{-1}(x)=x^{q-1}$. Now, let
+                  \[g(c)=cb-\int_{0}^{c}f(x)\;dx\]
+                  By the fundamental theorem of calculus, we have
+                  \[
+                    g'(c)=b-c^{p-1}
+                  \]
+                  We see that
+                  \[
+                    g'(c) > 0
+                    \iff b-c^{p-1}>0
+                    \iff c^{p-1}<b
+                    \iff c<b^{q-1}
+                  \]
+                  Likewise, we have that $g'(b^{q-1}) = 0$ and $g'(c)<0$ for $c>b^{q-1}$. Thus
+                  \begin{align*}
+                    g(c) &\leq b^{q} + \int_{0}^{b^{q-1}}x^{p-1}\;dx & \\
+                         &= x\cdot f(x)\Big\rvert_{0}^{b^{q-1}}-\int_{0}^{b^{q-1}}f(x)\;dx &\\
+                         &= \int_{0}^{b^{q-1}}xf'(x)\;dx &(\text{partial integration})\\
+                         &= \int_{0}^{b}f^{-1}(y)\;dy &(\text{substituting } y=f(x))\\
+                         &= \int_{0}^{b}x^{q-1}\;dx &
+                  \end{align*}
+                  So we have in particular that
+
+                  \begin{align*}
+                    ab-\int_{0}^{a}x^{p-1}\;dx &\leq \int_{0}^{b}x^{q-1}\;dx \\ \iff ab &\leq \frac{x^{p}}{p} + \frac{x^{q}}{q}
+                  \end{align*}
+                \end{proof}
+          \item
+                \begin{proof}[Proof.]
+                   If $\inorm{f}{p}>0$ and $\inorm{g}{q}=\infty$, then the inequality is trivially satisfied. Going forward, we therefore take  $0<\inorm{f}{p}, \inorm{g}{q}<\infty$.
+
+                  Let $a=\inorm{f}{p}$, $b=\inorm{g}{q}$, and set $f_{1}=\frac{f}{a}$, $g_{1}=\frac{g}{b}$, so that
+
+                  \begin{align*}
+                    \int_{E}|f_{1}|^{p}\;d\mu=\int_{E}|g_{1}|^{q}\;d\mu=1
+                  \end{align*}
+
+                  By Young's inequality,
+                  \begin{align*}
+                    |f_{1}(x)g_{1}(x)| = |f_{1}(x)||g_{1}(x)|\leq \frac{|f_{1}(x)|^{p}}{p} + \frac{|g_{1}(x)|^{q}}{q}
+                  \end{align*}
+                  Integrating both sides, we obtain
+                  \[
+                    \int_{E}|f_{1}g_{1}|\;d\mu = \frac{1}{p} + \frac{1}{q}= 1
+                  \]
+                  Now, by definition,
+                  \begin{align*}
+                    \int_{E}|f_{1}g_{1}|\;d\mu \leq 1
+                    \iff \int_{E}|fg|\;d\mu \leq \inorm{f}{p}\inorm{g}{q}
+                  \end{align*}
+                \end{proof}
+
+          \item $X$ and $Y$ are both integrable functions on some probability space, so the result follows immediately from Hölder's inequality.
+
+        \end{enumerate}
+\end{enumerate}
+
+\end{document}

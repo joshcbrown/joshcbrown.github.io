@@ -10,6 +10,10 @@ main {
     width: 90%;
 }
 
+article {
+    padding-bottom: 1rem;
+}
+
 .wrapper {
     font-size: 16px;
     display: flex;
@@ -17,8 +21,15 @@ main {
     height: 100%;
 }
 
+div#title {
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+    background-color: white;
+}
+
 div#navigation {
-    padding-bottom: 18px;
     text-align: center;
 }
 
@@ -47,6 +58,7 @@ div#navigation a {
 
 div#content {
     width: 80%;
+    margin-top: 4rem;
 }
 
 @media (min-width: 800px) {
@@ -55,10 +67,11 @@ div#content {
     }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
     .wrapper {
         flex-direction: column;
         justify-content: flex-start;
+        align-items: center;
     }
     div#navigation {
         display: flex;
@@ -68,6 +81,6 @@ div#content {
         width: 100%;
     }
     div#content {
-        width: 90%;
+        width: 95%;
     }
 }
