@@ -127,7 +127,7 @@ div.sourceCode {
 table {
     margin: 21px 0 21px 0;
     border-collapse: collapse;
-    border: 1px solid black;
+    border: 0px solid black;
 }
 table tr:hover {
     background: #f1f8f6;
@@ -135,9 +135,12 @@ table tr:hover {
 table tr:hover td {
     color: #2f4858;
 }
+tbody {
+   border-bottom: 1px solid #9cafb0;
+}
 table th,
 table td {
-    border-bottom: 1px solid #9cafb0;
+
     padding: 12px 35px;
     border-collapse: collapse;
 }

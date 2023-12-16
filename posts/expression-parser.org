@@ -12,7 +12,11 @@ libraries. As part of learning, I have:
 - Started building an [[https://github.com/joshcbrown/haculator][arithmetic expression parser]].
 
 I thought the arithmetic expression parser turned out to be a really fun
-exercise, and wanted to share the process. I'm going to assume a basic
+exercise, and wanted to share the process.
+
+<!--more-->
+
+I'm going to assume a basic
 familiarity with the ~Parsec~ family of parsers, but I'm hoping that the ideas
 are clear enough that anyone can follow along.
 
@@ -102,7 +106,7 @@ We'll save defining ~bracketed~ for later.
 At this stage, it's a good idea to check that things are behaving the way we
 expect:
 
-#+BEGIN_SRC
+#+BEGIN_SRC haskell
 ghci> parseTest negative (T.pack "-(-2)")
 Negate (Negate (Number (2 % 1)))
 ghci> parseTest negative (T.pack "---2)")
@@ -157,7 +161,7 @@ none and return an empty list. Calling ~head~ on the result should therefore
 never error.
 
 Another sanity check:
-#+BEGIN_SRC
+#+BEGIN_SRC haskell
 ghci> parseTest add (T.pack "1+2+3")
 BinOp Add (BinOp Add (Number (1 % 1)) (Number (2 % 1))) (Number (3 % 1))
 ghci> parseTest add (T.pack "1+(2+3)")
@@ -200,7 +204,7 @@ mult :: Parser Expr
 mult = binOp (Multiply <$ char '*' <|> Divide <$ char '/') negatable
 #+END_SRC
 
-#+begin_src
+#+begin_src haskell
 ghci> parseTest mult (T.pack "1+2*3")
 1:2:
   |
@@ -224,7 +228,7 @@ add = binOp (Add <$ char '+' <|> Subtract <$ char '-') (try mult <|> negatable)
 The fact that ~mult~ fails on the example above is actually desired behaviour,
 in the sense that the overall expression is an addition, namely of
 the terms "1" and "2*3":
-#+begin_src
+#+begin_src haskell
 ghci> parseTest add (T.pack "1+2*3")
 BinOp Add (Number (1 % 1)) (BinOp Multiply (Number (2 % 1)) (Number (3 % 1)))
 ghci> parseTest mult (T.pack "1+2*3")
@@ -261,7 +265,7 @@ bracketed = between (char '(') (char ')') expr
 #+end_src
 
 Let's do one final sanity check:
-#+begin_src
+#+begin_src haskell
 ghci> parseTest full (T.pack "1*2+3*(4--5)")
 BinOp Add (BinOp Multiply (Number (1 % 1)) (Number (2 % 1))) (BinOp Multiply (Number (3 % 1)) (BinOp Subtract (Number (4 % 1)) (Negate (Number (5 % 1)))))
 #+end_src
@@ -305,17 +309,21 @@ full :: Parser Expr
 full = expr <* eof
 #+end_src
 
-*** haskell is so expressive for me
+*** expressivity
 It's pretty nuts how concise the entire parser is; the whole thing is just 31
-lines, most of which is whitespace! Code to accomplish the same task in other
-languages can easily take hundreds.
+lines, a majority of which is whitespace or type declarations! Equivalent code
+in other languages often takes many more lines.
 
 I do think the expressiveness comes at a cost, though. In particular, debugging
 becomes a very involved process when the functions are co-recursive.
 
 Also worth noting is the liberal use of ~try~. I haven't done any rigorous
-analysis, but I'd be surprised if there weren't some class of expression which
-could coerce the parser into backtracking a lot, inducing very poor performance.
+analysis, but there is definitely a class of expressions which coerces the
+algorithm to do a lot of backtracking. For instance, expressions which contain
+only negative signs, brackets, and a digit will actually compute the complete
+answer at least 3 times: once as the potential left hand side of an addition;
+once as the potential left hand side of a multiplication; and finally accepted
+as a ~negatable~.
 
 *** evaluation
 A side effect of our choice of representation is that evaluating parsed
@@ -345,3 +353,13 @@ calculate =
 
 Evaluation is the most immediate consequence of the data structure, but other
 transformations of the AST are definitely worth exploring, too!
+
+*** disclaimer
+I am not a programming language expert! This is definitely my first attempt at this
+kind of problem, and I have no formal background in the area. I was essentially
+stumbling my way through the exercise, but that made it all the more fun.
+
+If I've missed something completely obvious, or otherwise come off as supremely
+ignorant, feel free to let me know. I'm interested enough in the area that I
+think it's time to go off and read about how expressions are parsed in more
+general contexts.
