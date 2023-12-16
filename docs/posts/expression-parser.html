@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="x-ua-compatible" content="ie=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>josh's blog - building an arithmetic expression parser</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/layout.css" />
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <link rel="stylesheet" href="../css/syntax.css" />
+        <link rel="icon" type="image.png" href="../images/favicon.png" />
+    </head>
+    <body>
+        <div class="wrapper">
+            <div id="navigation">
+                <h3><a href="../">home</a></h3>
+                <h3><a href="../about.html">about</a></h3>
+                <h3><a href="../blog.html">blog</a></h3>
+            </div>
+
+            <main>
+                <div id="content">
+                    <h1>building an arithmetic expression parser</h1>
+                    <article>
+    <section class="header">
+        Posted on December 16, 2023
+        
+    </section>
+    <section>
+        <p>I’ve been having a lot of fun playing around with Haskell’s monadic parser
+libraries. As part of learning, I have:</p>
+<ul>
+<li>Completed a few of 2023’s advent of code challenges, where in parsing inputs
+<code>attoparsec</code> proved <a href="https://github.com/joshcbrown/aoc-23/blob/main/src/Day1.hs">super handy</a>.</li>
+<li>Made a partial <a href="https://github.com/joshcbrown/png-parser/blob/main/app/Parser.hs">PNG parser</a> (mostly out of spite), using <code>megaparsec</code>. Will
+hopefully finish this project and talk about it in a separate post.</li>
+<li>Started building an <a href="https://github.com/joshcbrown/haculator">arithmetic expression parser</a>.</li>
+</ul>
+<p>I thought the arithmetic expression parser turned out to be a really fun
+exercise, and wanted to share the process. I’m going to assume a basic
+familiarity with the <code>Parsec</code> family of parsers, but I’m hoping that the ideas
+are clear enough that anyone can follow along.</p>
+<h1 id="modelling-arithmetic-expressions">modelling arithmetic expressions</h1>
+<p>It’s worth spelling out explicitly what the end goal is. Given a arithmetic
+expression in a string, e.g., “1+2*(3-4)”, we would like to build up some
+unambiguous representation of the expression in a data structure. Before we can
+commence, then, we have to decide on a suitable data structure.</p>
+<p>Let’s begin with our atoms: numbers. These will form the building blocks for our
+data structure. Because we want to support arbitrary precision float
+arithmetic, we will represent them by <code>Rational</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Expr</span> <span class="ot">=</span> <span class="dt">Number</span> <span class="dt">Rational</span></span></code></pre></div>
+<p>The next simplest thing to tackle is negation. Notice that in general we want to
+be able to negate any expression, which leads naturally to a recursive
+definition:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Expr</span> <span class="ot">=</span> <span class="dt">Number</span> <span class="dt">Rational</span> <span class="op">|</span> <span class="dt">Negate</span> <span class="dt">Expr</span></span></code></pre></div>
+<p>Where negation acts on a single expression, addition, subtraction,
+multiplication, and division all act on two. In this sense, we classify the them
+as <em>binary</em> operators, as opposed to negation as a <em>unary</em> operator:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">BinOp</span> <span class="ot">=</span> <span class="dt">Add</span> <span class="op">|</span> <span class="dt">Subtract</span> <span class="op">|</span> <span class="dt">Multiply</span> <span class="op">|</span> <span class="dt">Divide</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Expr</span> <span class="ot">=</span> <span class="dt">Number</span> <span class="dt">Rational</span> <span class="op">|</span> <span class="dt">Negate</span> <span class="dt">Expr</span> <span class="op">|</span> <span class="dt">BinOp</span> <span class="dt">BinOp</span> <span class="dt">Expr</span> <span class="dt">Expr</span></span></code></pre></div>
+<p>In programming language theory, this class of data structure is called an
+abstract syntax tree (AST). It is the canonical representation of expressions
+(also called terms) in most contexts, not just arithmetic. On a high level, we
+represent the expression “1*2*(3-4)” in a structure like:</p>
+<pre><code>            ┌───┐
+      ┌─────┤ * ├─────┐
+      │     └───┘     │
+    ┌─┴─┐           ┌─┴─┐
+  ┌─┤ * ├─┐       ┌─┤ - ├─┐
+  │ └───┘ │       │ └───┘ │
+┌─┴─┐   ┌─┴─┐   ┌─┴─┐   ┌─┴─┐
+│ 1 │   │ 2 │   │ 3 │   │ 4 │
+└───┘   └───┘   └───┘   └───┘
+</code></pre>
+<h1 id="parsing">parsing</h1>
+<h2 id="numbers">numbers</h2>
+<p>As we did with modelling the data, it’ll be easiest to approach parsing in the
+order of numbers, negation, and finally binary operators.</p>
+<p>We want to parse both doubles and integers, and <code>megaparsec</code>’s
+<code>Text.Parsec.Char.Lexer</code> provides nice facilities for accomplishing that:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">number ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>number <span class="ot">=</span> <span class="dt">Number</span> <span class="op">.</span> <span class="fu">toRational</span> <span class="op">&lt;$&gt;</span> (try float <span class="op">&lt;|&gt;</span> decimal)</span></code></pre></div>
+<p>Notice that we <code>try</code> parsing a float because we want to take back any input it
+consumes before attempting to parse a decimal.</p>
+<h2 id="negation">negation</h2>
+<p>As we defined it before, negation is recursive. Specifically, in a string,
+negation can act on:</p>
+<ol type="1">
+<li>A number, e.g. <code>"-1.5"</code>;</li>
+<li>Another negative, e.g. <code>"--3"</code>;</li>
+<li>A term surrounded by brackets, e.g. <code>"-(3*4)"</code></li>
+</ol>
+<p>Let’s call this collection of terms <em>negatable</em>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">negatable ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>negatable <span class="ot">=</span> choice [negative, bracketed, number]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ot">negative ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>negative <span class="ot">=</span> <span class="dt">Negate</span> <span class="op">&lt;$&gt;</span> (char <span class="ch">'-'</span> <span class="op">*&gt;</span> negatable)</span></code></pre></div>
+<p>We’ll save defining <code>bracketed</code> for later.</p>
+<p>At this stage, it’s a good idea to check that things are behaving the way we
+expect:</p>
+<pre><code>ghci&gt; parseTest negative (T.pack &quot;-(-2)&quot;)
+Negate (Negate (Number (2 % 1)))
+ghci&gt; parseTest negative (T.pack &quot;---2)&quot;)
+Negate (Negate (Negate (Number (2 % 1))))
+</code></pre>
+<p>Looks good!</p>
+<h2 id="addition">addition</h2>
+<p>Let’s deal with addition before moving on to multiplication. You might
+reasonably define addition in terms of two expressions delimited by a ‘+’. At this
+point, an expression can be an addition or a negatable, so we’ll define
+bracketed expressions in terms of that too:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> side <span class="ot">=</span> add <span class="op">&lt;|&gt;</span> negatable</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        op <span class="ot">=</span> (char <span class="ch">'+'</span> <span class="op">$&gt;</span> <span class="dt">Add</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">in</span> <span class="kw">do</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>            lhs <span class="ot">&lt;-</span> side</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">BinOp</span> <span class="op">&lt;$&gt;</span> op <span class="op">&lt;*&gt;</span> <span class="fu">pure</span> lhs <span class="op">&lt;*&gt;</span> side</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="ot">bracketed ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>bracketed <span class="ot">=</span> between (char <span class="ch">'('</span>) (char <span class="ch">')'</span>) (try add <span class="op">&lt;|&gt;</span> negatable)</span></code></pre></div>
+<p>That <code>try</code> before the <code>add</code> is critical, because we need to roll back any input
+<code>add</code> consumed before attempting to parse a negatable inside the brackets.</p>
+<p>Notice, though, that the first thing <code>add</code> does here is call itself. That’s
+going to throw the whole thing into a loop! So in order to make progress, let’s
+deal with chains of addition via the <code>some</code> combinator, and then roll them into
+a tree with a <code>foldr</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> side <span class="ot">=</span> negatable</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        op <span class="ot">=</span> char <span class="ch">'+'</span> <span class="op">$&gt;</span> <span class="dt">Add</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>     <span class="kw">in</span> <span class="kw">do</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            lhs <span class="ot">&lt;-</span> side</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>            rhs <span class="ot">&lt;-</span> some ((,) <span class="op">&lt;$&gt;</span> op <span class="op">&lt;*&gt;</span> side)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> (op1, rhs1) <span class="ot">=</span> <span class="fu">head</span> rhs</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                start <span class="ot">=</span> <span class="dt">BinOp</span> op1 lhs rhs1</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>            <span class="fu">pure</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>                <span class="op">$</span> <span class="fu">foldr</span> (\(newOp, newRhs) t <span class="ot">-&gt;</span> <span class="dt">BinOp</span> newOp t newRhs) start (<span class="fu">tail</span> rhs)</span></code></pre></div>
+<p>Recall that <code>some</code> parses 1 or more matches into a list, where <code>many</code> can match
+none and return an empty list. Calling <code>head</code> on the result should therefore
+never error.</p>
+<p>Another sanity check:</p>
+<pre><code>ghci&gt; parseTest add (T.pack &quot;1+2+3&quot;)
+BinOp Add (BinOp Add (Number (1 % 1)) (Number (2 % 1))) (Number (3 % 1))
+ghci&gt; parseTest add (T.pack &quot;1+(2+3)&quot;)
+BinOp Add (Number (1 % 1)) (BinOp Add (Number (2 % 1)) (Number (3 % 1)))
+ghci&gt; parseTest add (T.pack &quot;1+(2+-3)&quot;)
+BinOp Add (Number (1 % 1)) (BinOp Add (Number (2 % 1)) (Negate (Number (3 % 1))))
+</code></pre>
+<p>Now, since in regular arithmetic, addition and subtraction have the same
+precedence, all we have to do in order to parse subtraction is modify the <code>op</code>
+variable:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>op <span class="ot">=</span> <span class="dt">Add</span> <span class="op">&lt;$</span> char <span class="ch">'+'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Subtract</span> <span class="op">&lt;$</span> char <span class="ch">'-'</span></span></code></pre></div>
+<h2 id="multiplication">multiplication</h2>
+<p>As a binary operator, parsing multiplication and division is going to look very
+similar to addition. We can abstract the logic that will overlap into its own
+function:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">binOp ::</span> <span class="dt">Parser</span> <span class="dt">BinOp</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>binOp op side <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    lhs <span class="ot">&lt;-</span> side</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    rhs <span class="ot">&lt;-</span> some ((,) <span class="op">&lt;$&gt;</span> op <span class="op">&lt;*&gt;</span> side)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (op1, rhs1) <span class="ot">=</span> <span class="fu">head</span> rhs</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        start <span class="ot">=</span> <span class="dt">BinOp</span> op1 lhs rhs1</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pure</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">$</span> <span class="fu">foldr</span> (\(newOp, newRhs) t <span class="ot">-&gt;</span> <span class="dt">BinOp</span> newOp t newRhs) start (<span class="fu">tail</span> rhs)</span></code></pre></div>
+<p>The question, then, is what should <code>side</code> be for each of addition/subtraction
+and multiplication/division? Let’s see what happens if both are <code>negatable</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span> binOp (<span class="dt">Add</span> <span class="op">&lt;$</span> char <span class="ch">'+'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Subtract</span> <span class="op">&lt;$</span> char <span class="ch">'-'</span>) negatable</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mult ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>mult <span class="ot">=</span> binOp (<span class="dt">Multiply</span> <span class="op">&lt;$</span> char <span class="ch">'*'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Divide</span> <span class="op">&lt;$</span> char <span class="ch">'/'</span>) negatable</span></code></pre></div>
+<pre><code>ghci&gt; parseTest mult (T.pack &quot;1+2*3&quot;)
+1:2:
+  |
+1 | 1+2*3
+  |  ^
+unexpected '+'
+expecting '*', '/', or digit
+ghci&gt; parseTest add (T.pack &quot;1+2*3&quot;)
+BinOp Add (Number (1 % 1)) (Number (2 % 1))
+</code></pre>
+<p>Clearly, this is not what we want. We can solve this again by thinking about
+precedence: if an addition involves terms which multiply, those terms should
+be parsed first:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span> binOp (<span class="dt">Add</span> <span class="op">&lt;$</span> char <span class="ch">'+'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Subtract</span> <span class="op">&lt;$</span> char <span class="ch">'-'</span>) (try mult <span class="op">&lt;|&gt;</span> negatable)</span></code></pre></div>
+<p>The fact that <code>mult</code> fails on the example above is actually desired behaviour,
+in the sense that the overall expression is an addition, namely of
+the terms “1” and “2*3”:</p>
+<pre><code>ghci&gt; parseTest add (T.pack &quot;1+2*3&quot;)
+BinOp Add (Number (1 % 1)) (BinOp Multiply (Number (2 % 1)) (Number (3 % 1)))
+ghci&gt; parseTest mult (T.pack &quot;1+2*3&quot;)
+1:2:
+  |
+1 | 1+2*3
+  |  ^
+unexpected '+'
+expecting '*', '/', or digit
+</code></pre>
+<h2 id="expressions">expressions</h2>
+<p>At this stage, let’s establish a parser for an entire <code>expr</code>. We have three
+high-level parsers to work with, namely <code>add</code>, <code>mult</code>, and <code>negatable</code>. Which
+order should we attempt parsing in?</p>
+<p>The key insight is that we want to work upwards in terms of precedence. If we
+began parsing of “1*2+3” by trying multiplication, we would successfully parse
+1*2 and then fail to recognise the addition. Thus, we try parsing <code>add</code>, then
+<code>mult</code>, then <code>negatable</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">expr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">=</span> try add <span class="op">&lt;|&gt;</span> try mult <span class="op">&lt;|&gt;</span> negatable</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- ensures we consume all input</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="ot">full ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>full <span class="ot">=</span> expr <span class="op">&lt;*</span> eof</span></code></pre></div>
+<p>We also need to update <code>bracketed</code> to allow arbitrary expressions:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ot">bracketed ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>bracketed <span class="ot">=</span> between (char <span class="ch">'('</span>) (char <span class="ch">')'</span>) expr</span></code></pre></div>
+<p>Let’s do one final sanity check:</p>
+<pre><code>ghci&gt; parseTest full (T.pack &quot;1*2+3*(4--5)&quot;)
+BinOp Add (BinOp Multiply (Number (1 % 1)) (Number (2 % 1))) (BinOp Multiply (Number (3 % 1)) (BinOp Subtract (Number (4 % 1)) (Negate (Number (5 % 1)))))
+</code></pre>
+<h2 id="conclusions">conclusions</h2>
+<p>Obviously, more testing should be performed before concluding that the parser is
+sound. Here’s all of the parsing logic together:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">binOp ::</span> <span class="dt">Parser</span> <span class="dt">BinOp</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>binOp op side <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    lhs <span class="ot">&lt;-</span> side</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    rhs <span class="ot">&lt;-</span> some ((,) <span class="op">&lt;$&gt;</span> op <span class="op">&lt;*&gt;</span> side)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (op1, rhs1) <span class="ot">=</span> <span class="fu">head</span> rhs</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        start <span class="ot">=</span> <span class="dt">BinOp</span> op1 lhs rhs1</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pure</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">$</span> <span class="fu">foldr</span> (\(newOp, newRhs) t <span class="ot">-&gt;</span> <span class="dt">BinOp</span> newOp t newRhs) start (<span class="fu">tail</span> rhs)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span> binOp (<span class="dt">Add</span> <span class="op">&lt;$</span> char <span class="ch">'+'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Subtract</span> <span class="op">&lt;$</span> char <span class="ch">'-'</span>) (try mult <span class="op">&lt;|&gt;</span> negatable)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="ot">mult ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>mult <span class="ot">=</span> binOp (<span class="dt">Multiply</span> <span class="op">&lt;$</span> char <span class="ch">'*'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Divide</span> <span class="op">&lt;$</span> char <span class="ch">'/'</span>) negatable</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="ot">negative ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>negative <span class="ot">=</span> <span class="dt">Negate</span> <span class="op">&lt;$&gt;</span> (char <span class="ch">'-'</span> <span class="op">*&gt;</span> negatable)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="ot">number ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>number <span class="ot">=</span> <span class="dt">Number</span> <span class="op">.</span> <span class="fu">toRational</span> <span class="op">&lt;$&gt;</span> (try float <span class="op">&lt;|&gt;</span> decimal)</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="ot">negatable ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>negatable <span class="ot">=</span> choice [negative, bracketed, number]</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="ot">bracketed ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>bracketed <span class="ot">=</span> between (char <span class="ch">'('</span>) (char <span class="ch">')'</span>) expr</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a><span class="ot">expr ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">=</span> try add <span class="op">&lt;|&gt;</span> try mult <span class="op">&lt;|&gt;</span> negatable</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a><span class="ot">full ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>full <span class="ot">=</span> expr <span class="op">&lt;*</span> eof</span></code></pre></div>
+<h3 id="haskell-is-so-expressive-for-me">haskell is so expressive for me</h3>
+<p>It’s pretty nuts how concise the entire parser is; the whole thing is just 31
+lines, most of which is whitespace! Code to accomplish the same task in other
+languages can easily take hundreds.</p>
+<p>I do think the expressiveness comes at a cost, though. In particular, debugging
+becomes a very involved process when the functions are co-recursive.</p>
+<p>Also worth noting is the liberal use of <code>try</code>. I haven’t done any rigorous
+analysis, but I’d be surprised if there weren’t some class of expression which
+could coerce the parser into backtracking a lot, inducing very poor performance.</p>
+<h3 id="evaluation">evaluation</h3>
+<p>A side effect of our choice of representation is that evaluating parsed
+expressions is trivial:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">eval ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Rational</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>eval (<span class="dt">Number</span> x) <span class="ot">=</span> x</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>eval (<span class="dt">Negate</span> x) <span class="ot">=</span> <span class="fu">negate</span> (eval x)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>eval (<span class="dt">BinOp</span> op x y) <span class="ot">=</span> <span class="kw">case</span> op <span class="kw">of</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Add</span> <span class="ot">-&gt;</span> eval x <span class="op">+</span> eval y</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Subtract</span> <span class="ot">-&gt;</span> eval x <span class="op">-</span> eval y</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Multiply</span> <span class="ot">-&gt;</span> eval x <span class="op">*</span> eval y</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Divide</span> <span class="ot">-&gt;</span> eval x <span class="op">/</span> eval y</span></code></pre></div>
+<p>Now making a simple calculator is also super easy:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">calculate ::</span> (<span class="dt">Fractional</span> a) <span class="ot">=&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> a</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>calculate <span class="ot">=</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    left errorBundlePretty</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span> <span class="fu">fmap</span> (<span class="fu">fromRational</span> <span class="op">.</span> eval)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span> runParser full <span class="st">&quot;input&quot;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span> T.pack</span></code></pre></div>
+<p>Evaluation is the most immediate consequence of the data structure, but other
+transformations of the AST are definitely worth exploring, too!</p>
+    </section>
+</article>
+
+                    <!-- <footer> -->
+                    <!--     Site proudly generated by -->
+                    <!--     <a href="http://jaspervdj.be/hakyll">Hakyll</a> -->
+                    <!-- </footer> -->
+                </div>
+            </main>
+        </div>
+    </body>
+</html>
