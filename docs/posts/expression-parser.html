@@ -170,8 +170,8 @@ function:</p>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        start <span class="ot">=</span> <span class="dt">BinOp</span> op1 lhs rhs1</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pure</span></span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">$</span> <span class="fu">foldr</span> (\(newOp, newRhs) t <span class="ot">-&gt;</span> <span class="dt">BinOp</span> newOp t newRhs) start (<span class="fu">tail</span> rhs)</span></code></pre></div>
-<p>The question, then, is what should <code>side</code> be for each of addition/subtraction
-and multiplication/division? Let’s see what happens if both are <code>negatable</code>:</p>
+<p>The question, then, is what <code>side</code> should be for each of addition/subtraction
+and multiplication/division. Let’s see what happens if both are <code>negatable</code>:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>add <span class="ot">=</span> binOp (<span class="dt">Add</span> <span class="op">&lt;$</span> char <span class="ch">'+'</span> <span class="op">&lt;|&gt;</span> <span class="dt">Subtract</span> <span class="op">&lt;$</span> char <span class="ch">'-'</span>) negatable</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>

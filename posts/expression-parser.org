@@ -195,8 +195,8 @@ binOp op side = do
         $ foldr (\(newOp, newRhs) t -> BinOp newOp t newRhs) start (tail rhs)
 #+END_SRC
 
-The question, then, is what should ~side~ be for each of addition/subtraction
-and multiplication/division? Let's see what happens if both are ~negatable~:
+The question, then, is what ~side~ should be for each of addition/subtraction
+and multiplication/division. Let's see what happens if both are ~negatable~:
 
 #+BEGIN_SRC haskell
 add :: Parser Expr
