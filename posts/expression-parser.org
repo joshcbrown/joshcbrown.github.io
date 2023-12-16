@@ -9,7 +9,7 @@ libraries. As part of learning, I have:
   ~attoparsec~ proved [[https://github.com/joshcbrown/aoc-23/blob/main/src/Day1.hs][super handy]].
 - Made a partial [[https://github.com/joshcbrown/png-parser/blob/main/app/Parser.hs][PNG parser]] (mostly out of spite), using ~megaparsec~. Will
   hopefully finish this project and talk about it in a separate post.
-- Started building an [[https://github.com/joshcbrown/haculator][arithmetic expression parser]].
+- Started building an [[https://github.com/joshcbrown/haculator][arithmetic expression parser]] (also with ~megaparsec~).
 
 I thought the arithmetic expression parser turned out to be a really fun
 exercise, and wanted to share the process.
@@ -28,7 +28,8 @@ commence, then, we have to decide on a suitable data structure.
 
 Let's begin with our atoms: numbers. These will form the building blocks for our
 data structure. Because we want to support arbitrary precision float
-arithmetic, we will represent them by ~Rational~:
+arithmetic, we will represent them by ~Rational~ (which we do incur a runtime
+computational penalty for):
 
 #+BEGIN_SRC haskell
 data Expr = Number Rational
@@ -91,6 +92,9 @@ negation can act on:
 2. Another negative, e.g. ~"--3"~;
 3. A term surrounded by brackets, e.g. ~"-(3*4)"~
 
+Note that a pair of brackets can act on exactly the same items in a context
+with only numbers, minus signs, and brackets.
+
 Let's call this collection of terms /negatable/:
 #+BEGIN_SRC haskell
 negatable :: Parser Expr
@@ -98,10 +102,10 @@ negatable = choice [negative, bracketed, number]
 
 negative :: Parser Expr
 negative = Negate <$> (char '-' *> negatable)
+
+bracketed :: Parser Expr
+bracketed = between (char '(') (char ')') (try add <|> negatable)
 #+END_SRC
-
-We'll save defining ~bracketed~ for later.
-
 
 At this stage, it's a good idea to check that things are behaving the way we
 expect:
@@ -355,9 +359,10 @@ Evaluation is the most immediate consequence of the data structure, but other
 transformations of the AST are definitely worth exploring, too!
 
 *** disclaimer
-I am not a programming language expert! This is definitely my first attempt at this
-kind of problem, and I have no formal background in the area. I was essentially
-stumbling my way through the exercise, but that made it all the more fun.
+I am not a programming language expert! This is definitely my first attempt at
+this kind of problem, and I have no formal background in the area. I was
+essentially stumbling my way through the exercise, but that made it all the more
+fun.
 
 If I've missed something completely obvious, or otherwise come off as supremely
 ignorant, feel free to let me know. I'm interested enough in the area that I

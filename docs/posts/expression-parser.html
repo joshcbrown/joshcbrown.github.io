@@ -35,7 +35,7 @@ libraries. As part of learning, I have:</p>
 <code>attoparsec</code> proved <a href="https://github.com/joshcbrown/aoc-23/blob/main/src/Day1.hs">super handy</a>.</li>
 <li>Made a partial <a href="https://github.com/joshcbrown/png-parser/blob/main/app/Parser.hs">PNG parser</a> (mostly out of spite), using <code>megaparsec</code>. Will
 hopefully finish this project and talk about it in a separate post.</li>
-<li>Started building an <a href="https://github.com/joshcbrown/haculator">arithmetic expression parser</a>.</li>
+<li>Started building an <a href="https://github.com/joshcbrown/haculator">arithmetic expression parser</a> (also with <code>megaparsec</code>).</li>
 </ul>
 <p>I thought the arithmetic expression parser turned out to be a really fun
 exercise, and wanted to share the process.</p>
@@ -50,7 +50,8 @@ unambiguous representation of the expression in a data structure. Before we can
 commence, then, we have to decide on a suitable data structure.</p>
 <p>Let’s begin with our atoms: numbers. These will form the building blocks for our
 data structure. Because we want to support arbitrary precision float
-arithmetic, we will represent them by <code>Rational</code>:</p>
+arithmetic, we will represent them by <code>Rational</code> (which we do incur a runtime
+computational penalty for):</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Expr</span> <span class="ot">=</span> <span class="dt">Number</span> <span class="dt">Rational</span></span></code></pre></div>
 <p>The next simplest thing to tackle is negation. Notice that in general we want to
 be able to negate any expression, which leads naturally to a recursive
@@ -93,13 +94,17 @@ negation can act on:</p>
 <li>Another negative, e.g. <code>"--3"</code>;</li>
 <li>A term surrounded by brackets, e.g. <code>"-(3*4)"</code></li>
 </ol>
+<p>Note that a pair of brackets can act on exactly the same items in a context
+with only numbers, minus signs, and brackets.</p>
 <p>Let’s call this collection of terms <em>negatable</em>:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">negatable ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>negatable <span class="ot">=</span> choice [negative, bracketed, number]</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ot">negative ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>negative <span class="ot">=</span> <span class="dt">Negate</span> <span class="op">&lt;$&gt;</span> (char <span class="ch">'-'</span> <span class="op">*&gt;</span> negatable)</span></code></pre></div>
-<p>We’ll save defining <code>bracketed</code> for later.</p>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>negative <span class="ot">=</span> <span class="dt">Negate</span> <span class="op">&lt;$&gt;</span> (char <span class="ch">'-'</span> <span class="op">*&gt;</span> negatable)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ot">bracketed ::</span> <span class="dt">Parser</span> <span class="dt">Expr</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>bracketed <span class="ot">=</span> between (char <span class="ch">'('</span>) (char <span class="ch">')'</span>) (try add <span class="op">&lt;|&gt;</span> negatable)</span></code></pre></div>
 <p>At this stage, it’s a good idea to check that things are behaving the way we
 expect:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> parseTest negative (T.pack <span class="st">&quot;-(-2)&quot;</span>)</span>
@@ -288,9 +293,10 @@ expressions is trivial:</p>
 <p>Evaluation is the most immediate consequence of the data structure, but other
 transformations of the AST are definitely worth exploring, too!</p>
 <h3 id="disclaimer">disclaimer</h3>
-<p>I am not a programming language expert! This is definitely my first attempt at this
-kind of problem, and I have no formal background in the area. I was essentially
-stumbling my way through the exercise, but that made it all the more fun.</p>
+<p>I am not a programming language expert! This is definitely my first attempt at
+this kind of problem, and I have no formal background in the area. I was
+essentially stumbling my way through the exercise, but that made it all the more
+fun.</p>
 <p>If I’ve missed something completely obvious, or otherwise come off as supremely
 ignorant, feel free to let me know. I’m interested enough in the area that I
 think it’s time to go off and read about how expressions are parsed in more
