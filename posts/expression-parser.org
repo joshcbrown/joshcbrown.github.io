@@ -14,8 +14,6 @@ libraries. As part of learning, I have:
 I thought the arithmetic expression parser turned out to be a really fun
 exercise, and wanted to share the process.
 
-<!--more-->
-
 I'm going to assume a basic
 familiarity with the ~Parsec~ family of parsers, but I'm hoping that the ideas
 are clear enough that anyone can follow along.
