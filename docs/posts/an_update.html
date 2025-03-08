@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="x-ua-compatible" content="ie=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>josh's blog - an update</title>
+        <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/layout.css" />
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <link rel="stylesheet" href="../css/syntax.css" />
+        <link rel="icon" type="image.png" href="../images/favicon.png" />
+    </head>
+    <body>
+        <div class="wrapper">
+            <div id="navigation">
+                <h3><a href="../">home</a></h3>
+                <h3><a href="../resume.html">resume</a></h3>
+            </div>
+
+            <main>
+                <div id="content">
+                    <h1>an update</h1>
+                    <article>
+    <section class="header">
+        Posted on March  8, 2024
+        
+    </section>
+    <section>
+        <p>hey, it’s been a while. shortly after my first (and last) post, i started working as a mobile developer at TikTok. i’m still there, but i’m gearing up to do a postgraduate degree at ANU focusing on PL theory/formal verification.</p>
+<h2 id="motivation">motivation</h2>
+<h3 id="why-did-i-start-writing">why did i start writing?</h3>
+<p>when i made the blog at the beginning of 2024, i was driven by a few things:</p>
+<ul>
+<li>i was having fun with my side projects and wanted to write about my experiences as a form of documentation, both for my future self and for my career.</li>
+<li>it was fun hacking with <a href="https://jaspervdj.be/hakyll/">hakyll</a>, the site generator that i used to create the website.</li>
+<li>i had an existential realisation that i had no written record of who i was/had been for a very long time, and i figured one way to start such a record was through a blog.</li>
+</ul>
+<p>i think it’s pretty easy looking back to see how my drive fell apart quickly. the source of motivation was either bound to be short-lived (shiny new thing) or vague enough that it fell apart the moment it was tested. nevertheless, let’s explore those tests.</p>
+<h3 id="why-did-i-stop">why did i stop?</h3>
+<p>again, i have a few answers:</p>
+<ul>
+<li>i don’t have much to offer my (nonexistent) readership in terms of original, interesting content. i know it’s a silly headspace to be in. but generally when i get to writing about some technical project, i have attained enough fluency with what i want to write about to “see” how trivial it is and so find my writing about it to be inane and uninspired.</li>
+<li>i find the process of writing to be pretty paralysing. after finishing each sentence, i have a compulsion to go back and edit the wording to something that aesthetically appeals to me. giving into that compulsion leads to me getting stuck and finally convincing myself that i suck at writing (i do, but that’s what gets me to stop in times like these).</li>
+<li>like i said at the start, i started a job very shortly after and found myself pretty busy with that. i also had a reasonably involved wrist surgery that kept me from typing too long.</li>
+</ul>
+<h3 id="why-am-i-back">why am i back?</h3>
+<p>in preparation for the postgrad, i’ve worked through 3-ish textbooks without writing a single thought down. i know this now to be the wrong way to approach self-study.</p>
+<p>this time around, i have the concrete goal of writing about technical things that i’m currently tackling. we’ll see if the scope expands, but i want to be clear going in that that’s what the blog is about. in this way, i don’t need to worry about my readership’s expectations for “original” content. instead, the focus will be on the clarity of the technical prose, hopefully thereby ironing out my misunderstandings/knowledge gaps.</p>
+<p>i’m going to be purposefully light on editing the aesthetic element of the writing. i want to free myself from my expectations.</p>
+<p>i also want to lower my idea of what constitutes an interesting enough idea to write about. i’m thinking that maybe i’ll start a devlog-y thing for the current textbook i’m reading.</p>
+<p>and about my job, things are still pretty hectic but i’m making do.</p>
+<h2 id="what-have-i-been-up-to">what have i been up to?</h2>
+<p>so i’ve said already that i read 3-ish textbooks. those were:</p>
+<ul>
+<li><a href="https://softwarefoundations.cis.upenn.edu/lf-current/index.html">Logical Foundations</a></li>
+<li><a href="https://softwarefoundations.cis.upenn.edu/plf-current/index.html">Programming Language Foundations</a>
+<ul>
+<li>i finished the above two along with 95% of their exercises. they are such good learning material. having formal theorems, definitions, and proofs being so easily scrutinised and interacted with is so useful.</li>
+</ul></li>
+<li><a href="https://www.cis.upenn.edu/~bcpierce/tapl/">Types and Programming Languages</a>
+<ul>
+<li>this book has a large crossover with the previous two, covering largely the same content up until around halfway through when more complex type systems are discussed. i didn’t make it much further than the content of PLF before hitting a particularly busy patch of real-life work and losing the motivation to continue.</li>
+</ul></li>
+<li><a href="https://www.goodreads.com/book/show/400716.Introduction_to_the_Theory_of_Computation">Introduction to the Theory of Computation</a> (i couldn’t find an official website so linked is the goodreads)
+<ul>
+<li>i didn’t make it very far with this one either, admittedly. around a quarter of the way through i lost motivation in much the same way i did for TAPL. i do mean to come back.</li>
+</ul></li>
+<li><a href="https://craftinginterpreters.com/">Crafting Interpreters</a>
+<ul>
+<li>i’m working through this now, around 3/4 of the way through. specifically, i’m implementing a mirror image of the book’s implementation in haskell. it gives me much the same feeling PLF and LF did, reading a bit of prose and then hacking away with the concept. it’s been really fun.</li>
+</ul></li>
+</ul>
+<p>i rewrote the parser that i wrote about in my first blog after reading a <a href="https://dl.acm.org/doi/10.1145/3471874.3472984">very illuminating paper</a> recommended in a reddit comment.</p>
+<p>i made a <a href="https://github.com/joshcbrown/caydence">small utility</a> for timing wallpaper changes/notifications early last year according to a pomodoro/repeating cycle. it was a fun and self-contained project for exploring async Rust, which for this use-case was really very ergonomic.</p>
+<p>and… not a whole lot else, technically. i mean, look at my github contribution history:</p>
+<p><img src="../images/github_contributions.png" /></p>
+<p>yikes!</p>
+<p>anyway, i hope i manage to stick with this.</p>
+    </section>
+</article>
+
+                    <!-- <footer> -->
+                    <!--     Site proudly generated by -->
+                    <!--     <a href="http://jaspervdj.be/hakyll">Hakyll</a> -->
+                    <!-- </footer> -->
+                </div>
+            </main>
+        </div>
+    </body>
+</html>

@@ -9,6 +9,10 @@ main {
     width: 90%;
 }
 
+img {
+  max-width: 100%;
+}
+
 article {
     padding-bottom: 1rem;
 }
