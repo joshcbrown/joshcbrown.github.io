@@ -43,13 +43,13 @@ so i've said already that i read 3-ish textbooks. those were:
 
 - [Logical Foundations](https://softwarefoundations.cis.upenn.edu/lf-current/index.html)
 - [Programming Language Foundations](https://softwarefoundations.cis.upenn.edu/plf-current/index.html)
-  - i finished the above two along with 95% of their exercises. they are such good learning material. having formal theorems, definitions, and proofs being so easily scrutinised and interacted with is so useful.
+    - i finished the above two along with 95% of their exercises. they are such good learning material. having formal theorems, definitions, and proofs being so easily scrutinised and interacted with is so useful.
 - [Types and Programming Languages](https://www.cis.upenn.edu/~bcpierce/tapl/)
-  - this book has a large crossover with the previous two, covering largely the same content up until around halfway through when more complex type systems are discussed. i didn't make it much further than the content of PLF before hitting a particularly busy patch of real-life work and losing the motivation to continue.
+    - this book has a large crossover with the previous two, covering largely the same content up until around halfway through when more complex type systems are discussed. i didn't make it much further than the content of PLF before hitting a particularly busy patch of real-life work and losing the motivation to continue.
 - [Introduction to the Theory of Computation](https://www.goodreads.com/book/show/400716.Introduction_to_the_Theory_of_Computation) (i couldn't find an official website so linked is the goodreads)
-  - i didn't make it very far with this one either, admittedly. around a quarter of the way through i lost motivation in much the same way i did for TAPL. i do mean to come back.
+    - i didn't make it very far with this one either, admittedly. around a quarter of the way through i lost motivation in much the same way i did for TAPL. i do mean to come back.
 - [Crafting Interpreters](https://craftinginterpreters.com/)
-  - i'm working through this now, around 3/4 of the way through. specifically, i'm implementing a mirror image of the book's implementation in haskell. it gives me much the same feeling PLF and LF did, reading a bit of prose and then hacking away with the concept. it's been really fun.
+    - i'm working through this now, around 3/4 of the way through. specifically, i'm implementing a mirror image of the book's implementation in haskell. it gives me much the same feeling PLF and LF did, reading a bit of prose and then hacking away with the concept. it's been really fun.
 
 i rewrote the parser that i wrote about in my first blog after reading a [very illuminating paper](https://dl.acm.org/doi/10.1145/3471874.3472984) recommended in a reddit comment.
 

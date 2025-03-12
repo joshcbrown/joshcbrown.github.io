@@ -9,55 +9,28 @@
         <link rel="stylesheet" href="../css/layout.css" />
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <link rel="stylesheet" href="../css/syntax.css" />
+        <link rel="stylesheet" href="../css/tufte.css" />
         <link rel="icon" type="image.png" href="../images/favicon.png" />
     </head>
     <body>
-        <div class="wrapper">
-            <div id="navigation">
-                <h3><a href="../">home</a></h3>
-                <h3><a href="../resume.html">resume</a></h3>
-            </div>
+        <div id="navigation">
+            <h3><a href="../">home</a></h3>
+        </div>
 
-            <main>
-                <div id="content">
-                    <h1>hlox—how did we get here?</h1>
-                    <article>
-    <section class="header">
-        Posted on March 10, 2025
-        
-    </section>
-    <section>
-        <!--toc:start-->
-<ul>
-<li><a href="#why-haskell">why haskell?</a></li>
-<li><a href="#monad-transformers-mtl-style-effects">monad transformers, mtl-style effects</a>
-<ul>
-<li><a href="#properties">properties</a>
-<ul>
-<li><a href="#composition">composition</a></li>
-<li><a href="#polymorphism">polymorphism</a></li>
-</ul></li>
-<li><a href="#my-thoughts-on-mtl">my thoughts (on mtl)</a></li>
-</ul></li>
-<li><a href="#environments">environments</a>
-<ul>
-<li><a href="#closures">closures</a></li>
-<li><a href="#resolution">resolution</a></li>
-</ul></li>
-<li><a href="#im-going-to-bury-my-head-in-the-sand">i’m going to bury my head in the sand</a></li>
-<li><a href="#slowness">slowness</a></li>
-<li><a href="#conclusion">conclusion</a>
-<!--toc:end--></li>
-</ul>
-<p>i mentioned in <a href="../posts/an_update.html">an update</a> that i wanted to started writing a devlog-y thing while i work through bob nystrom’s <a href="https://craftinginterpreters.com/">‘crafting interpreters’</a>. i’m now on chapter 24/30, so we have a lot to catch up on. in this post, i’ll talk about working through the first half of the book.</p>
+        <main>
+            <div id="content">
+                <article>
+    <h1>hlox—how did we get here?</h1>
+    <p class="subtitle">Posted on March 10, 2025 </p>
+    <section><p>i mentioned in <a href="../posts/an_update.html">an update</a> that i wanted to started writing a devlog-y thing while i work through bob nystrom’s <a href="https://craftinginterpreters.com/">‘crafting interpreters’</a>. i’m now on chapter 24/30, so we have a lot to catch up on. in this post, i’ll talk about working through the first half of the book.</p>
 <p>my general approach has been to honour the semantics of the target language without making the exact same design decisions as the author, instead opting for my impression of the idiomatic way to do things in haskell. so, for instance, i use parser combinators instead of recursive descent to perform the parsing.</p>
+<section>
 <h2 id="why-haskell">why haskell?</h2>
 <p>because i like haskell. it’s fun!! there’s a huge wealth of cool features within the haskell ecosystem which i’ve barely scratched the surface of. this project has given me the opportunity to learn a bunch of new things. before getting into those, though, here’s a sample of the language to familiarise the unfamiliar reader:</p>
 <pre class="lox"><code>fun fib(n) {
   if (n &lt;= 1) { return n; }
   return fib(n - 1) + fib(n - 2);
-} 
+}
 
 for (var i = 1; i &lt; 25; i = i + 1) {
   print(fib(i));
@@ -78,8 +51,11 @@ for (var i = 1; i &lt; 25; i = i + 1) {
 <p>in addition to IO, we also need some notion of an environment (more on this later) to store variables and their values in, and a notion of exception so that we can fail gracefully.</p>
 <h3 id="properties">properties</h3>
 <p>there are two immediate properties of mtl-style effects that i want to highlight here:</p>
-<h4 id="composition">composition</h4>
-<p>we can create functions that require a subset of the effects that the full evaluation takes place in and freely call them from that environment, e.g.,</p>
+<p><strong>(a) composition</strong></p>
+<p>we can create functions that require a subset of the effects that the full evaluation takes place in and freely call them from that environment, e.g.,<label for="1" class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox" id="1" class="margin-toggle sidenote-number" />
+<span class="sidenote">i think having the function argument was a weird design choice. i could’ve just return <code>m Bool</code>, which a callee could’ve called <code>fmap f</code> on if they really wanted to. i’ve changed this in the VM implementation, which i think is nicer.</span></p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">expectBool ::</span> (<span class="dt">MonadError</span> <span class="dt">LoxError</span> m) <span class="ot">=&gt;</span> (<span class="dt">Bool</span> <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">SourcePos</span> <span class="ot">-&gt;</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> m a</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>expectBool f _ (<span class="dt">TBool</span> b) <span class="ot">=</span> <span class="fu">return</span> <span class="op">$</span> f b</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>expectBool _ l v <span class="ot">=</span> throwError <span class="op">.</span> exprError l <span class="op">$</span> <span class="dt">TypeError</span> <span class="st">&quot;bool&quot;</span> v</span>
@@ -97,21 +73,25 @@ for (var i = 1; i &lt; 25; i = i + 1) {
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            <span class="kw">then</span></span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>              <span class="dt">TBool</span> <span class="op">&lt;$&gt;</span> (evalExpr e2 <span class="op">&gt;&gt;=</span> expectBool <span class="fu">id</span> (location e2)) <span class="co">-- and here</span></span>
 <span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>            <span class="kw">else</span> <span class="fu">pure</span> (<span class="dt">TBool</span> <span class="dt">False</span>)</span></code></pre></div>
-<p>the effects also have no knowledge of each other. in this way, the effects can be said to <em>compose</em>.</p>
-<p>side note: i think having the function argument was a weird design choice. i could’ve just return <code>m Bool</code>, which a callee could’ve called <code>fmap f</code> on if they really wanted to. i’ve changed this in the VM implementation, which i think is nicer.</p>
-<p>side note 2: it might be slightly misleading to say the effects have <em>no</em> knowledge of each-other, because sometimes changing the ordering of the monad stack that the effects end up executing in will change both semantics and performance characteristics.</p>
+<p>the effects also have no knowledge of each other. in this way, the effects can be said to <em>compose</em>.
+<label for="2" class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox" id="2" class="margin-toggle sidenote-number" />
+<span class="sidenote">it might be slightly misleading to say the effects have <em>no</em> knowledge of each-other, because sometimes changing the ordering of the monad stack that the effects end up executing in will change both semantics and performance characteristics.</span></p>
 <p>one alternative to mtl-style is defining a concrete monad stack, something like:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Evaluation</span> <span class="ot">=</span> <span class="dt">ExceptT</span> <span class="dt">LoxError</span> (<span class="dt">StateT</span> <span class="dt">Env</span> <span class="dt">IO</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ot">evalExpr ::</span> <span class="dt">Expr</span> <span class="ot">-&gt;</span> <span class="dt">Evaluation</span> <span class="dt">Expr</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">expectBool ::</span> <span class="dt">Value</span> <span class="ot">-&gt;</span> <span class="dt">Evaluation</span> <span class="dt">Bool</span></span></code></pre></div>
 <p>which, admittedly, is much less verbose. but we immediately lose out on this composition, and now <code>expectBool</code> is forced to take place in <code>Evaluation</code> even though it requires only a small piece of the functionality of the full monad.</p>
-<h4 id="polymorphism">polymorphism</h4>
+<p><strong>(b) polymorphism</strong></p>
 <p><code>evalExpr</code> is polymorphic in its effects. this is what i mean when i say “some notion of [an environment|exception]” above. we could theoretically write our own instance of MonadState (like, say, one that records changes in state as they occur) for use in testing/debugging.</p>
 <p>maybe it goes without saying, but returning to the alternative of concrete monad stacks, we also lose out here too.</p>
 <h3 id="my-thoughts-on-mtl">my thoughts (on mtl)</h3>
 <p>overall, i have found this style of handling effects to be reasonably ergonomic and have continued using it extensively in the virtual machine side of the implementation in the second half of the book.</p>
 <p>i think it’s really cool to be able to see at a glance which effects each function needs. with that said, mtl-style effects are not the only way to accomplish this. namely, there are several so-called “algebraic effects” libraries in haskell which tackle the same problem from different angles (my understanding is most are implemented using the Free monad or delimited continuations as primitives). another extension that i hope to implement after finishing the book is rewriting the VM in one of these effect systems.</p>
+</section>
+<section>
 <h2 id="environments">environments</h2>
 <p>really the only other interesting design choice that came about when reading the first half of the book was how to handle environments. the book defines environments like:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="bu">Environment</span> <span class="op">{</span></span>
@@ -184,6 +164,8 @@ print(count());</code></pre>
 <div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>find i (<span class="dt">Env</span> scopes) <span class="ot">=</span> asum <span class="op">$</span> Map.lookup i <span class="op">&lt;$&gt;</span> scopes</span></code></pre></div>
 <p>we’re going to print 2.</p>
 <p>the solution to this is to determine statically the locations that identifiers point to (more specifically, how many <code>Scope</code>s at the front of an <code>Env</code> we need to disregard before looking up the variable). i had a go at implementing this but ran into a few really annoying bugs, at which point, i decided:</p>
+</section>
+<section>
 <h2 id="im-going-to-bury-my-head-in-the-sand">i’m going to bury my head in the sand</h2>
 <p>if anything, the exercise of implementing closures made me question why we’d ever want a language feature with these semantics. reasoning about the execution of a program becomes so much harder when a call to a function can have such nonlocal implications. it makes me appreciate Rust’s static ban on such behaviour while preserving a reasonable imperative model.</p>
 <p>but really i’m just coping. it was a hard problem and i didn’t particularly feel like forging on.</p>
@@ -194,7 +176,7 @@ print(count());</code></pre>
 <p>the author mentions that the following program runs in jlox on his machine in 72 seconds.</p>
 <pre class="lox"><code>fun fib(n) {
   if (n &lt; 2) { return n;}
-  return fib(n - 1) + fib(n - 2); 
+  return fib(n - 1) + fib(n - 2);
 }
 
 var before = clock();
@@ -203,15 +185,14 @@ var after = clock();
 print(after - before);</code></pre>
 <p>on my fairly well-equipped work laptop, this runs in 25 and a half minutes in my tree-walk implementation! i haven’t done any profiling but i suspect some of this extra overhead is due to the monad stack that we execute much of the code in, and also in variable lookups, which take exponentially more time as we recurse. it’ll be fun to see the speedup i get from the new architecture, and how it compares to the book’s implementation in C.</p>
 <p>there’s a fair bit more to write about before we catch up to where i am in the book, though, so i’ll sign off here. thanks</p>
-    </section>
+</section></section>
 </article>
 
-                    <!-- <footer> -->
-                    <!--     Site proudly generated by -->
-                    <!--     <a href="http://jaspervdj.be/hakyll">Hakyll</a> -->
-                    <!-- </footer> -->
-                </div>
-            </main>
-        </div>
+                <!-- <footer> -->
+                <!--     Site proudly generated by -->
+                <!--     <a href="http://jaspervdj.be/hakyll">Hakyll</a> -->
+                <!-- </footer> -->
+            </div>
+        </main>
     </body>
 </html>

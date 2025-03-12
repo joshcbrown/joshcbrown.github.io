@@ -1,28 +1,15 @@
 ---
 tags:
-  - hlox
+    - hlox
 date: 2025-03-10
 title: hlox—how did we get here?
 ---
 
-<!--toc:start-->
-- [why haskell?](#why-haskell)
-- [monad transformers, mtl-style effects](#monad-transformers-mtl-style-effects)
-  - [properties](#properties)
-    - [composition](#composition)
-    - [polymorphism](#polymorphism)
-  - [my thoughts (on mtl)](#my-thoughts-on-mtl)
-- [environments](#environments)
-  - [closures](#closures)
-  - [resolution](#resolution)
-- [i'm going to bury my head in the sand](#im-going-to-bury-my-head-in-the-sand)
-- [slowness](#slowness)
-- [conclusion](#conclusion)
-<!--toc:end-->
-
-i mentioned in [an update](/posts/an_update.html)  that i wanted to started writing a devlog-y thing while i work through bob nystrom's ['crafting interpreters'](https://craftinginterpreters.com/). i'm now on chapter 24/30, so we have a lot to catch up on. in this post, i'll talk about working through the first half of the book.
+i mentioned in [an update](/posts/an_update.html) that i wanted to started writing a devlog-y thing while i work through bob nystrom's ['crafting interpreters'](https://craftinginterpreters.com/). i'm now on chapter 24/30, so we have a lot to catch up on. in this post, i'll talk about working through the first half of the book.
 
 my general approach has been to honour the semantics of the target language without making the exact same design decisions as the author, instead opting for my impression of the idiomatic way to do things in haskell. so, for instance, i use parser combinators instead of recursive descent to perform the parsing.
+
+<section>
 
 ## why haskell?
 
@@ -32,7 +19,7 @@ because i like haskell. it's fun!! there's a huge wealth of cool features within
 fun fib(n) {
   if (n <= 1) { return n; }
   return fib(n - 1) + fib(n - 2);
-} 
+}
 
 for (var i = 1; i < 25; i = i + 1) {
   print(fib(i));
@@ -67,9 +54,15 @@ in addition to IO, we also need some notion of an environment (more on this late
 
 there are two immediate properties of mtl-style effects that i want to highlight here:
 
-#### composition
+**(a) composition**
 
-we can create functions that require a subset of the effects that the full evaluation takes place in and freely call them from that environment, e.g.,
+we can create functions that require a subset of the effects that the full evaluation takes place in and freely call them from that environment, e.g.,<label for="1"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="1"
+       class="margin-toggle sidenote-number"/>
+<span class="sidenote">i think having the function argument was a weird design choice. i could've just return `m Bool`, which a callee could've called `fmap f` on if they really wanted to. i've changed this in the VM implementation, which i think is nicer.</span>
 
 ```haskell
 expectBool :: (MonadError LoxError m) => (Bool -> a) -> SourcePos -> Value -> m a
@@ -91,11 +84,14 @@ evalExpr (Located l e) =
             else pure (TBool False)
 ```
 
-the effects also have no knowledge of each other. in this way, the effects can be said to *compose*.
-
-side note: i think having the function argument was a weird design choice. i could've just return `m Bool`, which a callee could've called `fmap f` on if they really wanted to. i've changed this in the VM implementation, which i think is nicer.
-
-side note 2: it might be slightly misleading to say the effects have *no* knowledge of each-other, because sometimes changing the ordering of the monad stack that the effects end up executing in will change both semantics and performance characteristics.
+the effects also have no knowledge of each other. in this way, the effects can be said to _compose_.
+<label for="2"
+       class="margin-toggle sidenote-number">
+</label>
+<input type="checkbox"
+       id="2"
+       class="margin-toggle sidenote-number"/>
+<span class="sidenote">it might be slightly misleading to say the effects have _no_ knowledge of each-other, because sometimes changing the ordering of the monad stack that the effects end up executing in will change both semantics and performance characteristics.</span>
 
 one alternative to mtl-style is defining a concrete monad stack, something like:
 
@@ -108,7 +104,7 @@ expectBool :: Value -> Evaluation Bool
 
 which, admittedly, is much less verbose. but we immediately lose out on this composition, and now `expectBool` is forced to take place in `Evaluation` even though it requires only a small piece of the functionality of the full monad.
 
-#### polymorphism
+**(b) polymorphism**
 
 `evalExpr` is polymorphic in its effects. this is what i mean when i say "some notion of \[an environment|exception\]" above. we could theoretically write our own instance of MonadState (like, say, one that records changes in state as they occur) for use in testing/debugging.
 
@@ -119,6 +115,10 @@ maybe it goes without saying, but returning to the alternative of concrete monad
 overall, i have found this style of handling effects to be reasonably ergonomic and have continued using it extensively in the virtual machine side of the implementation in the second half of the book.
 
 i think it's really cool to be able to see at a glance which effects each function needs. with that said, mtl-style effects are not the only way to accomplish this. namely, there are several so-called "algebraic effects" libraries in haskell which tackle the same problem from different angles (my understanding is most are implemented using the Free monad or delimited continuations as primitives). another extension that i hope to implement after finishing the book is rewriting the VM in one of these effect systems.
+
+</section>
+
+<section>
 
 ## environments
 
@@ -225,6 +225,10 @@ we're going to print 2.
 
 the solution to this is to determine statically the locations that identifiers point to (more specifically, how many `Scope`s at the front of an `Env` we need to disregard before looking up the variable). i had a go at implementing this but ran into a few really annoying bugs, at which point, i decided:
 
+</section>
+
+<section>
+
 ## i'm going to bury my head in the sand
 
 if anything, the exercise of implementing closures made me question why we'd ever want a language feature with these semantics. reasoning about the execution of a program becomes so much harder when a call to a function can have such nonlocal implications. it makes me appreciate Rust's static ban on such behaviour while preserving a reasonable imperative model.
@@ -244,7 +248,7 @@ the author mentions that the following program runs in jlox on his machine in 72
 ```lox
 fun fib(n) {
   if (n < 2) { return n;}
-  return fib(n - 1) + fib(n - 2); 
+  return fib(n - 1) + fib(n - 2);
 }
 
 var before = clock();
@@ -256,3 +260,5 @@ print(after - before);
 on my fairly well-equipped work laptop, this runs in 25 and a half minutes in my tree-walk implementation! i haven't done any profiling but i suspect some of this extra overhead is due to the monad stack that we execute much of the code in, and also in variable lookups, which take exponentially more time as we recurse. it'll be fun to see the speedup i get from the new architecture, and how it compares to the book's implementation in C.
 
 there's a fair bit more to write about before we catch up to where i am in the book, though, so i'll sign off here. thanks
+
+</section>

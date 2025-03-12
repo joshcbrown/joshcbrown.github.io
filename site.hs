@@ -34,13 +34,6 @@ main = hakyllWith config $ do
     route idRoute
     compile compressCssCompiler
 
-  match "resume.tex" $ do
-    route $ setExtension "html"
-    compile $
-      pandocCompiler'
-        >>= loadAndApplyTemplate "templates/resume.html" defaultContext
-        >>= relativizeUrls
-
   match "posts/*" $ do
     route $ setExtension "html"
     compile $

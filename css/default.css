@@ -42,7 +42,7 @@
     font-family: 'InterMedium', 'Open Sans', sans-serif;
 }
 
-.wrapper {
+body {
     background: #fff;
     color: #444;
     font-family: 'InterRegular', 'helvetica', sans-serif;
@@ -84,70 +84,4 @@ section.header {
 ul,
 ol {
     padding-left: 20px;
-}
-
-a {
-    color: #720000;
-    font-weight: 700;
-    text-decoration: none;
-}
-
-p {
-    font-size: 16px;
-    line-height: 20px;
-    margin-bottom: 20px;
-}
-
-code {
-    font-size: large;
-    font-family: 'FiraCode', 'Open Sans', sans-serif !important;
-    border-radius: 6px;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    -ms-border-radius: 6px;
-    -o-border-radius: 6px;
-}
-
-div.sourceCode {
-    padding: 16px;
-    font-size: large;
-    font-family: 'FiraCode', 'Open Sans', sans-serif !important;
-    /*padding: 48px;*/
-    width: 100%;
-    border-radius: 6px;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    -ms-border-radius: 6px;
-    -o-border-radius: 6px;
-    /* width fix */
-    width: auto;
-}
-/*table stuff*/
-
-table {
-    margin: 21px 0 21px 0;
-    border-collapse: collapse;
-    border: 0px solid black;
-}
-table tr:hover {
-    background: #f1f8f6;
-}
-table tr:hover td {
-    color: #2f4858;
-}
-tbody {
-   border-bottom: 1px solid #9cafb0;
-}
-table th,
-table td {
-
-    padding: 12px 35px;
-    border-collapse: collapse;
-}
-table th {
-    font-weight: bold;
-    text-align: left;
-}
-table th.last {
-    border-right: none;
 }
