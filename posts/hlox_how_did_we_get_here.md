@@ -259,6 +259,6 @@ print(after - before);
 
 on my fairly well-equipped work laptop, this runs in 25 and a half minutes in my tree-walk implementation! i haven't done any profiling but i suspect some of this extra overhead is due to the monad stack that we execute much of the code in, and also in variable lookups, which take exponentially more time as we recurse. it'll be fun to see the speedup i get from the new architecture, and how it compares to the book's implementation in C.
 
-there's a fair bit more to write about before we catch up to where i am in the book, though, so i'll sign off here.
+there's a fair bit more to write about before we catch up to where i am in the book, though, so i'll sign off here. thanks
 
 </section>
